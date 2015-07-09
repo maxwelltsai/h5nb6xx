@@ -243,3 +243,7 @@ int enableInterpolation(int val){
         return helper->helper_set_enable_interpolation(true);
     }
 }
+
+int set_host_star_flag(int host_star_id, int flag){
+    return helper->helper_set_host_star_flag(host_star_id, flag);
+}

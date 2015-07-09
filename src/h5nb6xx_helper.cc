@@ -198,6 +198,10 @@ H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
 
     // Prepare the properties of the group
     data->n_records = h5_get_dataset_vector_length(data->h5_group_id,"X");
+    if (data->n_records != status.n_particles) {
+        printf("FATAL ERROR: inconsistency number of particles (%d != %d)! Terminating...\n", status.n_particles, data->n_records);
+        exit(-1); // terminate the code if the vector of this step is different from the first step
+    }
     data->time = h5_read_attribute_double(data->h5_group_id, "Time");
     data->step_id = step_id;
     
@@ -205,75 +209,63 @@ H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
     // Since the array index of Fortran starts from 1 instead of 0, here
     // the ID read out from the HDF5 file should be substract by 1 before using!!!
     // Use vec_x, vec_y, vec_z to reorganize the ID 
-    float *vec, *vec_x, *vec_y, *vec_z;
-    data->id = h5_read_dataset_as_integer_vector(data->h5_group_id, "ID");
-
-    vec = h5_read_dataset_as_float_vector(data->h5_group_id, "Mass");
-    data->mass = new float[data->n_records];
-    for (int i = 0; i < data->n_records; i++) {
-        data->mass[data->id[i] - 1] = vec[i];
+    int *id_h5_step, *id_sorted; // variable IDs read from the HDF5 step
+    id_h5_step = h5_read_dataset_as_integer_vector(data->h5_group_id, "ID");
+    id_sorted = new int[data->n_records+1]; // because fortran starts from 1
+    for (int i = 0; i < data->n_records+1; i++) {
+        id_sorted[i] = 0;
     }
-    delete vec;
-    
-    vec_x = h5_read_dataset_as_float_vector(data->h5_group_id, "X");
-    vec_y = h5_read_dataset_as_float_vector(data->h5_group_id, "Y");
-    vec_z = h5_read_dataset_as_float_vector(data->h5_group_id, "Z");
+    for (int i = 0; i < data->n_records; i++) {
+        id_sorted[id_h5_step[i]] = i;
+    }
+    data->id = id_sorted;
+
+    float *vec[13];
+    vec[0] = h5_read_dataset_as_float_vector(data->h5_group_id, "Mass");
+    vec[1] = h5_read_dataset_as_float_vector(data->h5_group_id, "X");
+    vec[2] = h5_read_dataset_as_float_vector(data->h5_group_id, "Y");
+    vec[3] = h5_read_dataset_as_float_vector(data->h5_group_id, "Z");
+    vec[4] = h5_read_dataset_as_float_vector(data->h5_group_id, "VX");
+    vec[5] = h5_read_dataset_as_float_vector(data->h5_group_id, "VY");
+    vec[6] = h5_read_dataset_as_float_vector(data->h5_group_id, "VZ");
+    vec[7] = h5_read_dataset_as_float_vector(data->h5_group_id, "AX");
+    vec[8] = h5_read_dataset_as_float_vector(data->h5_group_id, "AY");
+    vec[9] = h5_read_dataset_as_float_vector(data->h5_group_id, "AZ");
+    vec[10] = h5_read_dataset_as_float_vector(data->h5_group_id, "JX");
+    vec[11] = h5_read_dataset_as_float_vector(data->h5_group_id, "JY");
+    vec[12] = h5_read_dataset_as_float_vector(data->h5_group_id, "JZ");
+
+    data->mass = new float[data->n_records];
     data->x = new float[data->n_records];
     data->y = new float[data->n_records];
     data->z = new float[data->n_records];
-    for (int i = 0; i < data->n_records; i++) {
-        data->x[data->id[i] - 1] = vec_x[i];
-        data->y[data->id[i] - 1] = vec_y[i];
-        data->z[data->id[i] - 1] = vec_z[i];
-    }
-    delete vec_x;
-    delete vec_y;
-    delete vec_z;
-
-    vec_x = h5_read_dataset_as_float_vector(data->h5_group_id, "VX");
-    vec_y = h5_read_dataset_as_float_vector(data->h5_group_id, "VY");
-    vec_z = h5_read_dataset_as_float_vector(data->h5_group_id, "VZ");
     data->vx = new float[data->n_records];
     data->vy = new float[data->n_records];
     data->vz = new float[data->n_records];
-    for (int i = 0; i < data->n_records; i++) {
-        data->vx[data->id[i] - 1] = vec_x[i];
-        data->vy[data->id[i] - 1] = vec_y[i];
-        data->vz[data->id[i] - 1] = vec_z[i];
-    }
-    delete vec_x;
-    delete vec_y;
-    delete vec_z;
-
-    vec_x = h5_read_dataset_as_float_vector(data->h5_group_id, "AX");
-    vec_y = h5_read_dataset_as_float_vector(data->h5_group_id, "AY");
-    vec_z = h5_read_dataset_as_float_vector(data->h5_group_id, "AZ");
     data->ax = new float[data->n_records];
     data->ay = new float[data->n_records];
     data->az = new float[data->n_records];
-    for (int i = 0; i < data->n_records; i++) {
-        data->ax[data->id[i] - 1] = vec_x[i];
-        data->ay[data->id[i] - 1] = vec_y[i];
-        data->az[data->id[i] - 1] = vec_z[i];
-    }
-    delete vec_x;
-    delete vec_y;
-    delete vec_z;
-
-    vec_x = h5_read_dataset_as_float_vector(data->h5_group_id, "JX");
-    vec_y = h5_read_dataset_as_float_vector(data->h5_group_id, "JY");
-    vec_z = h5_read_dataset_as_float_vector(data->h5_group_id, "JZ");
     data->jx = new float[data->n_records];
     data->jy = new float[data->n_records];
     data->jz = new float[data->n_records];
     for (int i = 0; i < data->n_records; i++) {
-        data->jx[data->id[i] - 1] = vec_x[i];
-        data->jy[data->id[i] - 1] = vec_y[i];
-        data->jz[data->id[i] - 1] = vec_z[i];
+        data->mass[i] = vec[0][id_sorted[i+1]];
+        data->x[i] = vec[1][id_sorted[i+1]];
+        data->y[i] = vec[2][id_sorted[i+1]];
+        data->z[i] = vec[3][id_sorted[i+1]];
+        data->vx[i] = vec[4][id_sorted[i+1]];
+        data->vy[i] = vec[5][id_sorted[i+1]];
+        data->vz[i] = vec[6][id_sorted[i+1]];
+        data->ax[i] = vec[7][id_sorted[i+1]];
+        data->ay[i] = vec[8][id_sorted[i+1]];
+        data->az[i] = vec[9][id_sorted[i+1]];
+        data->jx[i] = vec[10][id_sorted[i+1]];
+        data->jy[i] = vec[11][id_sorted[i+1]];
+        data->jz[i] = vec[12][id_sorted[i+1]];
     }
-    delete vec_x;
-    delete vec_y;
-    delete vec_z;
+    for (int i = 0; i < 13; i++) {
+        //delete vec[i];
+    }
 
     return data;
 }
@@ -337,15 +329,18 @@ int H5nb6xx_Helper::helper_initialize_code(){
     // upscale the MAX_PARTICLE_NUMBER to be one magnitude larger
     if(status.n_particles>0) {
         MAX_PARTICLE_NUMBER = status.n_particles;
-        printf("MAX_PARTICLE_NUMBER = %d\n", MAX_PARTICLE_NUMBER);
     } else if (n_records>0) { // TotalN attribute not available
         MAX_PARTICLE_NUMBER = (int) pow(10,ceil(log10(n_records)));
-        printf("MAX_PARTICLE_NUMBER = %d\n", MAX_PARTICLE_NUMBER);
     }
+    printf("Total number of particles: %d, MAX_PARTICLE_NUMBER = %d\n", status.n_particles, MAX_PARTICLE_NUMBER);
     H5Gclose(h5_group_id);
     status.current_step_id = -1;
     status.data = NULL;
     status.next_data = NULL;
+    host_star_flag = new int[MAX_PARTICLE_NUMBER];
+    for (int i = 0; i < MAX_PARTICLE_NUMBER; i++) {
+        host_star_flag[i] = 0;
+    }
     helper_evolve_model(0);
     return 0;
 }
@@ -374,6 +369,7 @@ int H5nb6xx_Helper::helper_new_particle(int * index_of_the_particle, double mass
 
 
 int H5nb6xx_Helper::helper_delete_particle(int index_of_the_particle) {
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     return -1; // Particle cannot be removed
 }
 
@@ -396,6 +392,7 @@ int H5nb6xx_Helper::helper_get_index_of_next_particle(int index_of_the_particle,
 
 int H5nb6xx_Helper::helper_get_state(int index_of_the_particle, double * mass, double * x, 
   double * y, double * z, double * vx, double * vy, double * vz, double * radius){
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     *mass = status.data->mass[index_of_the_particle];
     *x = status.data->x[index_of_the_particle];
     *y = status.data->y[index_of_the_particle];
@@ -410,6 +407,7 @@ int H5nb6xx_Helper::helper_get_state(int index_of_the_particle, double * mass, d
 
 int H5nb6xx_Helper::helper_set_state(int index_of_the_particle, double mass, double x, 
         double y, double z, double vx, double vy, double vz, double radius){
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     status.data->x[index_of_the_particle] = x;
     status.data->y[index_of_the_particle] = y;
     status.data->z[index_of_the_particle] = z;
@@ -421,16 +419,19 @@ int H5nb6xx_Helper::helper_set_state(int index_of_the_particle, double mass, dou
 }
 
 int H5nb6xx_Helper::helper_get_mass(int index_of_the_particle, double * mass) {
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     *mass = status.data->mass[index_of_the_particle];
     return 0;
 }
 
 int H5nb6xx_Helper::helper_set_mass(int index_of_the_particle, double mass) {
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     status.data->mass[index_of_the_particle] = mass;
     return 0; // not supported
 }
 
 int H5nb6xx_Helper::helper_get_position(int index_of_the_particle, double * x, double * y, double * z) {
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     *x = status.data->x[index_of_the_particle];
     *y = status.data->y[index_of_the_particle];
     *z = status.data->z[index_of_the_particle];
@@ -439,6 +440,7 @@ int H5nb6xx_Helper::helper_get_position(int index_of_the_particle, double * x, d
 }
 
 int H5nb6xx_Helper::helper_set_position(int index_of_the_particle, double x, double y, double z) {
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     status.data->x[index_of_the_particle] = x;
     status.data->y[index_of_the_particle] = y;
     status.data->z[index_of_the_particle] = z;
@@ -446,6 +448,7 @@ int H5nb6xx_Helper::helper_set_position(int index_of_the_particle, double x, dou
 }
 
 int H5nb6xx_Helper::helper_set_acceleration(int index_of_the_particle, double ax, double ay, double az) {
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     status.data->ax[index_of_the_particle] = ax;
     status.data->ay[index_of_the_particle] = ay;
     status.data->az[index_of_the_particle] = az;
@@ -454,6 +457,7 @@ int H5nb6xx_Helper::helper_set_acceleration(int index_of_the_particle, double ax
 
 
 int H5nb6xx_Helper::helper_get_acceleration(int index_of_the_particle, double * ax, double * ay, double * az) {
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     *ax = status.data->ax[index_of_the_particle];
     *ay = status.data->ay[index_of_the_particle];
     *az = status.data->az[index_of_the_particle];
@@ -461,7 +465,7 @@ int H5nb6xx_Helper::helper_get_acceleration(int index_of_the_particle, double * 
 }
 
 int H5nb6xx_Helper::helper_get_potential(int index_of_the_particle, double * potential) {
-
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
     return 0;
 }
 
@@ -487,8 +491,7 @@ int H5nb6xx_Helper::helper_get_potential_energy(double * potential_energy) {
 }
 
 
-int H5nb6xx_Helper::helper_get_center_of_mass_velocity(double * vx, double * vy, 
-  double * vz) {
+int H5nb6xx_Helper::helper_get_center_of_mass_velocity(double * vx, double * vy, double * vz) {
     double mtot = 0;
     double cm_vx=0, cm_vy=0, cm_vz=0;
     for(int i=0;i<status.n_particles;i++) {
@@ -534,12 +537,14 @@ int H5nb6xx_Helper::helper_get_total_radius(double * radius) {
 }
 
 int H5nb6xx_Helper::helper_get_radius(int index_of_the_particle, double * radius) {
+    index_of_the_particle = status.data->id[index_of_the_particle];
     *radius = 0;
     return 0;
 }
 
 
 int H5nb6xx_Helper::helper_set_radius(int index_of_the_particle, double radius) {
+    index_of_the_particle = status.data->id[index_of_the_particle];
     //data.radius[index_of_the_particle] = radius;
     return 0; // not supported
 }
@@ -598,6 +603,8 @@ int H5nb6xx_Helper::helper_evolve_model(double to_time) {
         status.prev_step_id = status.current_step_id;
         status.current_step_id = step;
         status.next_step_id = status.current_step_id + 1;
+        if (status.data != NULL) delete status.data;
+        if (status.next_data != NULL) delete status.next_data;
         status.data = h5_load_step_by_id(status.current_step_id);
         status.next_data = h5_load_step_by_id(status.next_step_id);
     //}
@@ -613,6 +620,7 @@ int H5nb6xx_Helper::helper_evolve_model(double to_time) {
 }
 
 int H5nb6xx_Helper::helper_get_velocity(int index_of_the_particle, double * vx, double * vy, double * vz) {
+    index_of_the_particle = status.data->id[index_of_the_particle];
     *vx = status.data->vx[index_of_the_particle];
     *vy = status.data->vy[index_of_the_particle];
     *vz = status.data->vz[index_of_the_particle];
@@ -621,6 +629,7 @@ int H5nb6xx_Helper::helper_get_velocity(int index_of_the_particle, double * vx, 
 
 
 int H5nb6xx_Helper::helper_set_velocity(int index_of_the_particle, double vx, double vy, double vz) {
+    index_of_the_particle = status.data->id[index_of_the_particle];
     status.data->vx[index_of_the_particle] = vx;
     status.data->vy[index_of_the_particle] = vy;
     status.data->vz[index_of_the_particle] = vz;
@@ -723,34 +732,42 @@ int H5nb6xx_Helper::helper_get_gravity_at_point(double * eps, double * x, double
              double * forcex, double * forcey, double * forcez, int n) {
     // Inquirying the accelerations of n points specified by (x[0], y[0], z[0]), 
     // (x[1], y[1], z[1]), ..., (x[n-1, y[n-1], z[n-1])
-/* 
-    if(n<1) return -1; // at least one point 
-    forcex = (double *) malloc(n * sizeof(double));
-    forcey = (double *) malloc(n * sizeof(double));
-    forcez = (double *) malloc(n * sizeof(double));
-    for(int i=0; i<n; i++) {
-        forcex[i] = 0;
-        forcey[i] = 0;
-        forcez[i] = 0;
-        double r2 = 0; // distance squared
-        double r2i = 0;
-        double ri = 0;
-        double mri = 0;
-        double mr3i = 0;
-        for(int j=0; j<status.n_particles; j++) {
-            // sum all particles in the cluster
-            r2 = pow(data.x[j]-x[i], 2) + pow(data.y[j]-y[i], 2) + pow(data.z[j]-z[i], 2);
-            r2i = 1.0/(r2 + eps[i] + _TINY_);
-            ri = sqrt(r2i);
-            mri = data.mass[j] * ri;
-            mr3i = mri * r2i;
-            forcex[i] += mr3i * (data.x[j]-x[i]);
-            forcey[i] += mr3i * (data.y[j]-y[i]);
-            forcez[i] += mr3i * (data.z[j]-z[i]);
+    if (n > 1) {
+        forcex = (double *) malloc(n * sizeof(double));
+        forcey = (double *) malloc(n * sizeof(double));
+        forcez = (double *) malloc(n * sizeof(double));
+        for(int i=0; i<n; i++) {
+            forcex[i] = 0;
+            forcey[i] = 0;
+            forcez[i] = 0;
+            double r2 = 0; // distance squared
+            double r2i = 0;
+            double ri = 0;
+            double mri = 0;
+            double mr3i = 0;
+            for(int j=0; j<status.n_particles; j++) {
+                // sum all particles in the cluster, but skip the host stars
+                if (host_star_flag[j]>0) {
+                    //printf("Skipping particle #%d because it is the host star\n", j+1);
+                    continue; // already sorted, use j instead of (j+1)
+                }
+                r2 = pow(status.data->x[j]-x[i], 2.0) + pow(status.data->y[j]-y[i], 2.0) + pow(status.data->z[j]-z[i], 2.0);
+                if (r2 < _TINY_) {
+                    printf("WARNING!! SMALL DISTANCE SKIPPED! j=%d, x[j]=%f, *x=%f, r2=%f\n", j, status.data->x[j], (*x), r2);
+                    continue;
+                }
+                //r2i = 1.0/(r2 + (*eps) + _TINY_);
+                r2i = 1.0/(r2 + (*eps));
+                ri = sqrt(r2i);
+                mri = status.data->mass[j] * ri;
+                mr3i = mri * r2i;
+                forcex[i] += mr3i * (status.data->x[j]-x[i]);
+                forcey[i] += mr3i * (status.data->y[j]-y[i]);
+                forcez[i] += mr3i * (status.data->z[j]-z[i]);
+            }
+            printf("(%f,%f,%f), npoints:%d, acceleration AX = %f, AY = %f, AZ = %f\n", x[i], y[i], z[i], n, forcex[i], forcey[i], forcez[i]);
         }
-        printf("acceleration AX[%d] = %f, AY[%d] = %f, AZ[%d] = %f\n", i, forcex[i], i, forcey[i], i, forcez[i]);
-    }
-*/
+    } else if (n == 1) {
         *forcex = 0;
         *forcey = 0;
         *forcez = 0;
@@ -760,18 +777,30 @@ int H5nb6xx_Helper::helper_get_gravity_at_point(double * eps, double * x, double
         double mri = 0;
         double mr3i = 0;
         for(int j=0; j<status.n_particles; j++) {
-            // sum all particles in the cluster
-            r2 = pow(status.data->x[j]-(*x), 2) + pow(status.data->y[j]-(*y), 2) + pow(status.data->z[j]-(*z), 2);
-            r2i = 1.0/(r2 + (*eps) + _TINY_);
+            // sum all particles in the cluster, but skip the host stars
+            if (host_star_flag[j]>0) {
+                //printf("Skipping particle #%d because it is the host star\n", j+1);
+                continue; // already sorted, use j instead of (j+1)
+            }
+            r2 = pow(status.data->x[j]-(*x), 2.0) + pow(status.data->y[j]-(*y), 2.0) + pow(status.data->z[j]-(*z), 2.0);
+            if (r2 < _TINY_) {
+                printf("WARNING!! SMALL DISTANCE SKIPPED! j=%d, x[j]=%f, *x=%f, r2=%f\n", j, status.data->x[j], (*x), r2);
+                continue;
+            }
+            //r2i = 1.0/(r2 + (*eps) + _TINY_);
+            r2i = 1.0/(r2 + (*eps));
             ri = sqrt(r2i);
             mri = status.data->mass[j] * ri;
             mr3i = mri * r2i;
             *forcex += mr3i * (status.data->x[j]-(*x));
+            printf("j=%d, x[j]=%f, *x=%f, r2=%f, forcex=%f\n", j, status.data->x[j], (*x), r2, *forcex);
             *forcey += mr3i * (status.data->y[j]-(*y));
             *forcez += mr3i * (status.data->z[j]-(*z));
         }
-        printf("(%f,%f,%f), acceleration AX = %f, AY = %f, AZ = %f\n", *x, *y, *z, *forcex, *forcey, *forcez);
+        printf("(%f,%f,%f), npoints:%d, acceleration AX = %f, AY = %f, AZ = %f\n", *x, *y, *z, n, *forcex, *forcey, *forcez);
+    }
     return 0;
+
 }
 
 int H5nb6xx_Helper::helper_get_total_number_of_steps(int *val) {
@@ -811,3 +840,13 @@ int H5nb6xx_Helper::helper_set_enable_interpolation(bool val)
     enable_interpolation = val;
     return 0;
 }
+
+int H5nb6xx_Helper::helper_set_host_star_flag(int host_star_id, int flag)
+{
+    host_star_id -= 1; // the ID is already sorted, starting from 0
+    printf("setting %d as %d\n", host_star_id, flag);
+    host_star_flag[host_star_id] = flag;
+    return 0;
+}
+
+

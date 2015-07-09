@@ -28,6 +28,7 @@ struct interpolate
         float t0 = T.y;
         float tstep = T.z;
         float dt = tstep;
+        if (t<t0) t = t0; // fix a bug of the misalignment of HDF5 steps
         float tau = (t-t0)/tstep;
         float p0x = X.x;
         float p0y = X.y;
@@ -54,10 +55,18 @@ struct interpolate
         float p7y = 1.0/6*(J.y+J1.y)*dt*dt*dt + 2*(A.y-A1.y)*dt*dt + 10*(V.y+V1.y)*dt + 20*(X.y-X1.y);
         float p7z = 1.0/6*(J.z+J1.z)*dt*dt*dt + 2*(A.z-A1.z)*dt*dt + 10*(V.z+V1.z)*dt + 20*(X.z-X1.z);
 
-
         float x_pred = p0x + p1x*tau + p2x*pow(tau,2.0f) + p3x*pow(tau,3.0f) + p4x*pow(tau,4.0f) + p5x*pow(tau,5.0f) + p6x*pow(tau,6.0f) + p7x*pow(tau,7.0f);
         float y_pred = p0y + p1y*tau + p2y*pow(tau,2.0f) + p3y*pow(tau,3.0f) + p4y*pow(tau,4.0f) + p5y*pow(tau,5.0f) + p6y*pow(tau,6.0f) + p7y*pow(tau,7.0f);
         float z_pred = p0z + p1z*tau + p2z*pow(tau,2.0f) + p3z*pow(tau,3.0f) + p4z*pow(tau,4.0f) + p5z*pow(tau,5.0f) + p6z*pow(tau,6.0f) + p7z*pow(tau,7.0f);
+
+        // fail-safe linear interpolation based on positions in case the v, a, j vectors are wrong
+        // assuming that the interpolated x should be x0 <= x_interp <= x1
+        //if ((x_pred<X.x||x_pred>X1.x) || (y_pred<X.y||y_pred>X1.y) || (z_pred<X.z||z_pred>X1.z)) {
+        //    printf("crazy!!, x0=%f, x1=%f, x_pred=%f, t0=%f, t=%f, tau=%f\n", X.x, X1.x, x_pred, t0, t, tau);
+        //    x_pred = X.x + tau * (X1.x - X.x);
+        //    y_pred = X.y + tau * (X1.y - X.y);
+        //    z_pred = X.z + tau * (X1.z - X.z);
+        //}
         return make_float3(x_pred, y_pred, z_pred);
     }
 };
@@ -140,7 +149,7 @@ int CUDA_Util::cuda_predict(float to_time){
     thrust::fill(t0.begin(), t0.end(), current_time);
     thrust::fill(tstep.begin(), tstep.end(), istatus.t_step);
 
-    std::cout<<"t="<<to_time<<" t0="<<current_time<<" tstep="<<istatus.t_step<<std::endl;
+    std::cout<<"t="<<to_time<<" t0="<<current_time<<" tstep="<<istatus.t_step<<" tau="<<((to_time-current_time)/istatus.t_step)<<std::endl;
 
 
     thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(x.begin(), y.begin(), z.begin())),

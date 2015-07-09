@@ -95,6 +95,19 @@ class H5nb6xxInterface(CodeInterface,
         function.result_type = 'int32'
         return function
 
+    @legacy_function
+    def set_host_star_flag():
+        """
+        Enables prediction/interpolation of coordinates.
+        """
+        function = LegacyFunctionSpecification()
+        function.addParameter('host_star_id', dtype='int32',
+                              direction=function.IN)
+        function.addParameter('flag', dtype='int32',
+                              direction=function.IN)
+        function.result_type = 'int32'
+        return function
+
 class H5nb6xx(GravitationalDynamics, GravityFieldCode):
 
     #def __init__(self, **options):

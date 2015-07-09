@@ -15,7 +15,7 @@ class H5nb6xx_Helper
 
     public:
         struct Dynamics {
-            int *id;
+            int *id; // sorted ID, id[NAME[index_of_part]] is the internal id of the particle
             float *x;
             float *y;
             float *z;
@@ -47,7 +47,10 @@ class H5nb6xx_Helper
             hid_t h5_file_id; // file ID of the opened HDF5 snapshot
             int nsteps; // total number of steps
             double t_step; //during between to steps
-            int n_particles; // total number of particles (in the star cluster)
+            // number of particles for the current step. Since this interface requires all step have the same
+            // vector lengths, if (n_particles != data->n_records), the code will stop, otherwise the result
+            // would be unpreditable.
+            int n_particles; // total number of particles in the star cluster (determined by the first step).
             Dynamics* data;
             Dynamics* next_data;
         }; // storage of global properties
@@ -112,6 +115,7 @@ class H5nb6xx_Helper
         int helper_set_eta(double timestep_parameter);
         int helper_get_eta(double * timestep_parameter);
         int helper_set_enable_interpolation(bool val);
+        int helper_set_host_star_flag(int host_star_id, int flag);
 
 
 
@@ -121,6 +125,7 @@ class H5nb6xx_Helper
         int MAX_PARTICLE_NUMBER;
         double _TINY_;
         int next_particle_id;
+        int* host_star_flag; // 0 if not a host star, 1 if otherwise
 
 
 
