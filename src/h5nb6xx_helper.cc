@@ -709,7 +709,6 @@ int H5nb6xx_Helper::helper_get_potential_at_point(double * eps, double * x, doub
             ri = sqrt(r2i);
             phi[i] -= data.mass[j] * ri;
         }
-        printf("potential ph[%d] = %f\n", i, phi[i]);
     }
 */
         *phi = 0;
@@ -723,7 +722,6 @@ int H5nb6xx_Helper::helper_get_potential_at_point(double * eps, double * x, doub
             ri = sqrt(r2i);
             *phi -= status.data->mass[j] * ri;
         }
-        printf("potential phi = %f\n", *phi);
     return 0;
 }
 
@@ -765,7 +763,6 @@ int H5nb6xx_Helper::helper_get_gravity_at_point(double * eps, double * x, double
                 forcey[i] += mr3i * (status.data->y[j]-y[i]);
                 forcez[i] += mr3i * (status.data->z[j]-z[i]);
             }
-            printf("(%f,%f,%f), npoints:%d, acceleration AX = %f, AY = %f, AZ = %f\n", x[i], y[i], z[i], n, forcex[i], forcey[i], forcez[i]);
         }
     } else if (n == 1) {
         *forcex = 0;
@@ -793,11 +790,9 @@ int H5nb6xx_Helper::helper_get_gravity_at_point(double * eps, double * x, double
             mri = status.data->mass[j] * ri;
             mr3i = mri * r2i;
             *forcex += mr3i * (status.data->x[j]-(*x));
-            printf("j=%d, x[j]=%f, *x=%f, r2=%f, forcex=%f\n", j, status.data->x[j], (*x), r2, *forcex);
             *forcey += mr3i * (status.data->y[j]-(*y));
             *forcez += mr3i * (status.data->z[j]-(*z));
         }
-        printf("(%f,%f,%f), npoints:%d, acceleration AX = %f, AY = %f, AZ = %f\n", *x, *y, *z, n, *forcex, *forcey, *forcez);
     }
     return 0;
 
