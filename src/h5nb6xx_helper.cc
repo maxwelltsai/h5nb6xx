@@ -218,6 +218,8 @@ H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
     for (int i = 0; i < data->n_records; i++) {
         id_sorted[id_h5_step[i]] = i;
     }
+    if (data->id != NULL) delete [] data->id;
+    delete [] id_h5_step;
     data->id = id_sorted;
 
     float *vec[13];
@@ -264,7 +266,7 @@ H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
         data->jz[i] = vec[12][id_sorted[i+1]];
     }
     for (int i = 0; i < 13; i++) {
-        //delete vec[i];
+        delete [] vec[i];
     }
 
     return data;
@@ -328,7 +330,7 @@ int H5nb6xx_Helper::helper_initialize_code(){
     
     // upscale the MAX_PARTICLE_NUMBER to be one magnitude larger
     if(status.n_particles>0) {
-        MAX_PARTICLE_NUMBER = status.n_particles;
+        MAX_PARTICLE_NUMBER = status.n_particles+100;
     } else if (n_records>0) { // TotalN attribute not available
         MAX_PARTICLE_NUMBER = (int) pow(10,ceil(log10(n_records)));
     }
@@ -709,6 +711,7 @@ int H5nb6xx_Helper::helper_get_potential_at_point(double * eps, double * x, doub
             ri = sqrt(r2i);
             phi[i] -= data.mass[j] * ri;
         }
+        printf("potential ph[%d] = %f\n", i, phi[i]);
     }
 */
         *phi = 0;

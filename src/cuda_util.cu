@@ -100,7 +100,6 @@ int CUDA_Util::cuda_predict(float to_time){
     H5nb6xx_Helper::Dynamics* idata = this->h5nb6xx_helper->get_data();
     H5nb6xx_Helper::Dynamics* idata1 = this->h5nb6xx_helper->get_data_next();
 
-
     int n_particles = istatus.n_particles;
     float current_time = idata->time;
     std::cout<<"interpolation, dt="<<(to_time - current_time)<<" t0="<<current_time<<" t="<<to_time<<" t1="<<idata1->time<<std::endl;
@@ -150,7 +149,6 @@ int CUDA_Util::cuda_predict(float to_time){
     thrust::fill(tstep.begin(), tstep.end(), istatus.t_step);
 
     std::cout<<"t="<<to_time<<" t0="<<current_time<<" tstep="<<istatus.t_step<<" tau="<<((to_time-current_time)/istatus.t_step)<<std::endl;
-
 
     thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(x.begin(), y.begin(), z.begin())),
             thrust::make_zip_iterator(thrust::make_tuple(x.end(), y.end(), z.end())),
@@ -216,6 +214,48 @@ int CUDA_Util::cuda_predict(float to_time){
         idata->z[i] = X_h[i].z;
     }
 
+    // clean up memory
+    x.clear();
+    y.clear();
+    z.clear();
+    vx.clear();
+    vy.clear();
+    vz.clear();
+    ax.clear();
+    ay.clear();
+    az.clear();
+    jx.clear();
+    jy.clear();
+    jz.clear();
+    x1.clear();
+    y1.clear();
+    z1.clear();
+    vx1.clear();
+    vy1.clear();
+    vz1.clear();
+    ax1.clear();
+    ay1.clear();
+    az1.clear();
+    jx1.clear();
+    jy1.clear();
+    jz1.clear();
+    X.clear();
+    V.clear();
+    A.clear();
+    J.clear();
+    X1.clear();
+    V1.clear();
+    A1.clear();
+    J1.clear();
+    T.clear();
+    t.clear();
+    t0.clear();
+    tstep.clear();
+    X_h.clear();
+
+    //delete istatus;
+    //delete idata;
+    //delete idata1;
     return 0;
 }
 

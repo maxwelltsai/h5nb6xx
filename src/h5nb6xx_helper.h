@@ -34,6 +34,36 @@ class H5nb6xx_Helper
             hid_t h5_group_id;
             int n_records; // total number of particles recorded in a step (group)
 
+            ~Dynamics() {
+                delete [] id;
+                delete [] x;
+                delete [] y;
+                delete [] z;
+                delete [] vx;
+                delete [] vy;
+                delete [] vz;
+                delete [] ax;
+                delete [] ay;
+                delete [] az;
+                delete [] jx;
+                delete [] jy;
+                delete [] jz;
+                delete [] mass;
+                id = NULL;
+                x = NULL;
+                y = NULL;
+                z = NULL;
+                vx = NULL;
+                vy = NULL;
+                vz = NULL;
+                ax = NULL;
+                ay = NULL;
+                az = NULL;
+                jx = NULL;
+                jy = NULL;
+                jz = NULL;
+                mass = NULL;
+            }
         }; // storage of the dynamical data for current step
 
         struct Status{
@@ -53,6 +83,7 @@ class H5nb6xx_Helper
             int n_particles; // total number of particles in the star cluster (determined by the first step).
             Dynamics* data;
             Dynamics* next_data;
+
         }; // storage of global properties
 
         static H5nb6xx_Helper* GetInstance();
