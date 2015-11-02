@@ -67,18 +67,17 @@ int H5nb6xx_Helper::h5_get_total_number_of_groups(hid_t parent_id) {
         printf("Total number of groups: %d\n", status.nsteps);
         return status.nsteps;
     }
-    else return -1;
+    else {
+        printf("Error! Unable to get number of HDF5 groups. Returning -1 from h5_get_total_number_of_groups()\n");
+        return -1;
+    }
 }
 
 hid_t H5nb6xx_Helper::h5_open_group_by_name(hid_t parent_id, const char* group_name) {
     hid_t group_id;
-#if H5_VERSION_GE(1,8,0)
     group_id = H5Gopen2(parent_id, group_name, H5P_DEFAULT);
-#else
-    group_id = H5Gopen(parent_id, group_name);
-#endif
     if (group_id == HDF5_error) { 
-        printf("ERROR opening group %s \n", group_name);  
+        printf("ERROR opening group %s, returning -1 from h5_open_group_by_name()\n", group_name);  
         return -1;
     }
     return group_id;
@@ -87,30 +86,38 @@ hid_t H5nb6xx_Helper::h5_open_group_by_name(hid_t parent_id, const char* group_n
 
 double H5nb6xx_Helper::h5_read_attribute_double(hid_t parent_id, const char *attrib_name) {
     double attrib_val=-1;
+    hid_t err;
     hid_t attrib_id;
     attrib_id = H5Aopen (parent_id, attrib_name, H5P_DEFAULT);
-    H5Aread(attrib_id,H5T_NATIVE_DOUBLE,&attrib_val);
+    err = H5Aread(attrib_id,H5T_NATIVE_DOUBLE,&attrib_val);
     H5Aclose (attrib_id);
-    return attrib_val;
+    if (err >= 0) {
+        return attrib_val;
+    } else {
+        printf("Error! Unable to read attribute %s, returning -1 from h5_read_attribute_double()...\n", attrib_name);
+        return -1;
+    }
 }
 
 int H5nb6xx_Helper::h5_read_attribute_integer(hid_t parent_id, const char *attrib_name) {
     int attrib_val=-1;
+    hid_t err;
     hid_t attrib_id;
     attrib_id = H5Aopen (parent_id, attrib_name, H5P_DEFAULT);
-    H5Aread(attrib_id,H5T_NATIVE_INT,&attrib_val);
+    err = H5Aread(attrib_id,H5T_NATIVE_INT,&attrib_val);
     H5Aclose (attrib_id);
-    return attrib_val;
+    if (err >= 0) {
+        return attrib_val;
+    } else {
+        printf("Error! Unable to read attribute %s, returning -1 from h5_read_attribute_double()...\n", attrib_name);
+        return -1;
+    }
 }
 
 int* H5nb6xx_Helper::h5_read_dataset_as_integer_vector(hid_t parent_id, const char *dset_name) {
     hid_t dset_id;
     int * data;
-#if H5_VERSION_GE(1,8,0)
     dset_id = H5Dopen2(parent_id, dset_name, H5P_DEFAULT);
-#else
-    dset_id = H5Dopen(parent_id, dset_name);
-#endif
     hid_t dspace_id = H5Dget_space(dset_id);
     int rank = H5Sget_simple_extent_ndims(dspace_id);
     hsize_t dims[rank];
@@ -125,17 +132,16 @@ int* H5nb6xx_Helper::h5_read_dataset_as_integer_vector(hid_t parent_id, const ch
     H5Sclose(dspace_id);
     H5Dclose(dset_id);
     if(err>=0) return data;
-    else return NULL;
+    else {
+        printf("Error! dataset %s cannot be read! Return NULL from h5_read_dataset_as_integer_vector()...\n", dset_name);
+        return NULL;
+    }
 }
 
 float* H5nb6xx_Helper::h5_read_dataset_as_float_vector(hid_t parent_id, const char *dset_name) {
     hid_t dset_id;
     float * data;
-#if H5_VERSION_GE(1,8,0)
     dset_id = H5Dopen2(parent_id, dset_name, H5P_DEFAULT);
-#else
-    dset_id = H5Dopen(parent_id, dset_name);
-#endif
     hid_t dspace_id = H5Dget_space(dset_id);
     int rank = H5Sget_simple_extent_ndims(dspace_id);
     hsize_t dims[rank];
@@ -150,11 +156,18 @@ float* H5nb6xx_Helper::h5_read_dataset_as_float_vector(hid_t parent_id, const ch
     H5Sclose(dspace_id);
     H5Dclose(dset_id);
     if(err>=0) return data;
-    else return NULL;
+    else {
+        printf("Error! dataset %s cannot be read! Return NULL from h5_read_dataset_as_float_vector()...\n", dset_name);
+        return NULL;
+    }
+
 }
 
 double H5nb6xx_Helper::h5_get_step_duration() {
-    if(status.h5_file_id<=0) return -1;
+    if(status.h5_file_id<=0) {
+        printf("Error! Invalid h5_file_id = %d, returning -1 from h5_get_step_duration()\n", status.h5_file_id);
+        return -1;
+    }
     int ngroups = h5_get_total_number_of_groups(status.h5_file_id);
     if(ngroups==1) return 0;
     else {
@@ -183,14 +196,20 @@ int H5nb6xx_Helper::h5_get_dataset_vector_length(hid_t parent_id, const char *ds
 }
 
 H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
-    if (step_id < 0 || step_id >= status.nsteps) return NULL;
+    if (step_id < 0 || step_id >= status.nsteps) {
+        printf("Error! HDF5 Step#%d cannot be read! Return NULL from h5_load_step_by_id()...\n", step_id); 
+        return NULL;
+    }
     
     // prepare the group name
     char h5_group_name[32];
     sprintf(h5_group_name, "Step#%d", step_id);
     printf("Loading new group %s\n", h5_group_name);
     hid_t gid = h5_open_group_by_name(status.h5_file_id, h5_group_name);
-    if (gid < 0) return NULL;
+    if (gid < 0){
+        printf("Error! HDF5 group %s cannot be opened! Return NULL from h5_load_step_by_id()...\n", h5_group_name);
+        return NULL;
+    }
     
     // When this point has been reached, the group is opened successfully
     H5nb6xx_Helper::Dynamics* data = new H5nb6xx_Helper::Dynamics();
@@ -212,15 +231,20 @@ H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
     int *id_h5_step, *id_sorted; // variable IDs read from the HDF5 step
     id_h5_step = h5_read_dataset_as_integer_vector(data->h5_group_id, "ID");
     id_sorted = new int[data->n_records+1]; // because fortran starts from 1
-    for (int i = 0; i < data->n_records+1; i++) {
-        id_sorted[i] = 0;
+    if (id_sorted != NULL and id_h5_step != NULL) {
+        for (int i = 0; i < data->n_records+1; i++) {
+            id_sorted[i] = 0;
+        }
+        for (int i = 0; i < data->n_records; i++) {
+            id_sorted[id_h5_step[i]] = i;
+        }
+        //if (data->id != NULL) delete [] data->id;
+        delete [] id_h5_step;
+        id_h5_step = NULL;
+        data->id = id_sorted;
+    } else {
+        printf("Error! Either id_sorted == NULL or id_h5_step == NULL (load_step_by_id)\n");
     }
-    for (int i = 0; i < data->n_records; i++) {
-        id_sorted[id_h5_step[i]] = i;
-    }
-    if (data->id != NULL) delete [] data->id;
-    delete [] id_h5_step;
-    data->id = id_sorted;
 
     float *vec[13];
     vec[0] = h5_read_dataset_as_float_vector(data->h5_group_id, "Mass");
@@ -266,7 +290,10 @@ H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
         data->jz[i] = vec[12][id_sorted[i+1]];
     }
     for (int i = 0; i < 13; i++) {
-        delete [] vec[i];
+        if (vec[i] != NULL) {
+            delete [] vec[i];
+            vec[i] = NULL;
+        }
     }
 
     return data;
@@ -309,8 +336,10 @@ int H5nb6xx_Helper::helper_initialize_code(){
     status.prev_step_id = 0;
     status.next_step_id = 1;
     status.current_time = 0.0;
-    if (file_id < 0) return -1; // Error opening HDF5 file
-    
+    if (file_id < 0) {
+        printf("Error! Invalid HDF5 file ID %d, returning -1 from helper_initialize_code()\n", file_id);
+        return -1; // Error opening HDF5 file
+    } 
     // Open the first h5 group to determine some global properties
     char h5_group_name[32];
     status.h5_file_id = file_id;
@@ -559,7 +588,10 @@ int H5nb6xx_Helper::helper_evolve_model(double to_time) {
     // On return, system_time will be greater than or equal to the specified time. 
     bool skip_loading = false;
 
-    if (to_time < 0 || to_time > status.end_time) return -1;
+    if (to_time < 0 || to_time > status.end_time) {
+        printf("Error! invalid time (%f), returning -1 from helper_evolve_model()\n", to_time);
+        return -1;
+    }
 
     // Advance the system time to the specified time
     status.current_time = to_time;
@@ -754,7 +786,7 @@ int H5nb6xx_Helper::helper_get_gravity_at_point(double * eps, double * x, double
                 }
                 r2 = pow(status.data->x[j]-x[i], 2.0) + pow(status.data->y[j]-y[i], 2.0) + pow(status.data->z[j]-z[i], 2.0);
                 if (r2 < _TINY_) {
-                    printf("WARNING!! SMALL DISTANCE SKIPPED! j=%d, x[j]=%f, *x=%f, r2=%f\n", j, status.data->x[j], (*x), r2);
+                    //printf("WARNING!! SMALL DISTANCE SKIPPED! j=%d, x[j]=%f, *x=%f, r2=%f\n", j, status.data->x[j], (*x), r2);
                     continue;
                 }
                 //r2i = 1.0/(r2 + (*eps) + _TINY_);
@@ -784,7 +816,7 @@ int H5nb6xx_Helper::helper_get_gravity_at_point(double * eps, double * x, double
             }
             r2 = pow(status.data->x[j]-(*x), 2.0) + pow(status.data->y[j]-(*y), 2.0) + pow(status.data->z[j]-(*z), 2.0);
             if (r2 < _TINY_) {
-                printf("WARNING!! SMALL DISTANCE SKIPPED! j=%d, x[j]=%f, *x=%f, r2=%f\n", j, status.data->x[j], (*x), r2);
+                //printf("WARNING!! SMALL DISTANCE SKIPPED! j=%d, x[j]=%f, *x=%f, r2=%f\n", j, status.data->x[j], (*x), r2);
                 continue;
             }
             //r2i = 1.0/(r2 + (*eps) + _TINY_);

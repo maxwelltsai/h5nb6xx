@@ -35,20 +35,21 @@ class H5nb6xx_Helper
             int n_records; // total number of particles recorded in a step (group)
 
             ~Dynamics() {
-                delete [] id;
-                delete [] x;
-                delete [] y;
-                delete [] z;
-                delete [] vx;
-                delete [] vy;
-                delete [] vz;
-                delete [] ax;
-                delete [] ay;
-                delete [] az;
-                delete [] jx;
-                delete [] jy;
-                delete [] jz;
-                delete [] mass;
+                printf("destructor start\n");
+                if(id!=NULL) delete [] id;
+                if(x!=NULL) delete [] x;
+                if(y!=NULL) delete [] y;
+                if(z!=NULL) delete [] z;
+                if(vx!=NULL) delete [] vx;
+                if(vy!=NULL) delete [] vy;
+                if(vz!=NULL) delete [] vz;
+                if(ax!=NULL) delete [] ax;
+                if(ay!=NULL) delete [] ay;
+                if(az!=NULL) delete [] az;
+                if(jx!=NULL) delete [] jx;
+                if(jy!=NULL) delete [] jy;
+                if(jz!=NULL) delete [] jz;
+                if(mass!=NULL) delete [] mass;
                 id = NULL;
                 x = NULL;
                 y = NULL;
@@ -63,6 +64,7 @@ class H5nb6xx_Helper
                 jy = NULL;
                 jz = NULL;
                 mass = NULL;
+                printf("destructor end\n");
             }
         }; // storage of the dynamical data for current step
 
