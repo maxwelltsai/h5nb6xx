@@ -85,6 +85,7 @@ class H5nb6xx_Helper
             int n_particles; // total number of particles in the star cluster (determined by the first step).
             Dynamics* data;
             Dynamics* next_data;
+            Dynamics* interp_data;
 
         }; // storage of global properties
 
@@ -172,7 +173,7 @@ class H5nb6xx_Helper
         float *h5_read_dataset_as_float_vector(hid_t parent_id, const char *dset_name);
         double h5_get_step_duration();
         int h5_get_dataset_vector_length(hid_t parent_id, const char *dset_name);
-        Dynamics* h5_load_step_by_id(int step_id);
+        int h5_load_step_by_id(int step_id, Dynamics* data);
         bool enable_interpolation;
 
         static H5nb6xx_Helper* instance;

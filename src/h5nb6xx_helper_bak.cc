@@ -195,10 +195,10 @@ int H5nb6xx_Helper::h5_get_dataset_vector_length(hid_t parent_id, const char *ds
     return (int)dims[0];
 }
 
-int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* data) {
+H5nb6xx_Helper::Dynamics* H5nb6xx_Helper::h5_load_step_by_id(int step_id) {
     if (step_id < 0 || step_id >= status.nsteps) {
         printf("Error! HDF5 Step#%d cannot be read! Return NULL from h5_load_step_by_id()...\n", step_id); 
-        return -1;
+        return NULL;
     }
     
     // prepare the group name
@@ -208,10 +208,11 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
     hid_t gid = h5_open_group_by_name(status.h5_file_id, h5_group_name);
     if (gid < 0){
         printf("Error! HDF5 group %s cannot be opened! Return NULL from h5_load_step_by_id()...\n", h5_group_name);
-        return -1;
+        return NULL;
     }
     
     // When this point has been reached, the group is opened successfully
+    H5nb6xx_Helper::Dynamics* data = new H5nb6xx_Helper::Dynamics();
     data->h5_group_id = gid;
 
     // Prepare the properties of the group
@@ -237,10 +238,7 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
         for (int i = 0; i < data->n_records; i++) {
             id_sorted[id_h5_step[i]] = i;
         }
-        if (data->id != NULL) {
-            delete [] data->id;
-            data->id = NULL;
-        }
+        //if (data->id != NULL) delete [] data->id;
         delete [] id_h5_step;
         id_h5_step = NULL;
         data->id = id_sorted;
@@ -263,21 +261,19 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
     vec[11] = h5_read_dataset_as_float_vector(data->h5_group_id, "JY");
     vec[12] = h5_read_dataset_as_float_vector(data->h5_group_id, "JZ");
 
-    // allocate memory if necessary 
-    if (data->mass==NULL) data->mass = new float[data->n_records];
-    if (data->x==NULL) data->x = new float[data->n_records];
-    if (data->y==NULL) data->y = new float[data->n_records];
-    if (data->z==NULL) data->z = new float[data->n_records];
-    if (data->vx==NULL) data->vx = new float[data->n_records];
-    if (data->vy==NULL) data->vy = new float[data->n_records];
-    if (data->vz==NULL) data->vz = new float[data->n_records];
-    if (data->ax==NULL) data->ax = new float[data->n_records];
-    if (data->ay==NULL) data->ay = new float[data->n_records];
-    if (data->az==NULL) data->az = new float[data->n_records];
-    if (data->jx==NULL) data->jx = new float[data->n_records];
-    if (data->jy==NULL) data->jy = new float[data->n_records];
-    if (data->jz==NULL) data->jz = new float[data->n_records];
-
+    data->mass = new float[data->n_records];
+    data->x = new float[data->n_records];
+    data->y = new float[data->n_records];
+    data->z = new float[data->n_records];
+    data->vx = new float[data->n_records];
+    data->vy = new float[data->n_records];
+    data->vz = new float[data->n_records];
+    data->ax = new float[data->n_records];
+    data->ay = new float[data->n_records];
+    data->az = new float[data->n_records];
+    data->jx = new float[data->n_records];
+    data->jy = new float[data->n_records];
+    data->jz = new float[data->n_records];
     for (int i = 0; i < data->n_records; i++) {
         data->mass[i] = vec[0][id_sorted[i+1]];
         data->x[i] = vec[1][id_sorted[i+1]];
@@ -300,7 +296,7 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
         }
     }
 
-    return 0;
+    return data;
 }
 
 
@@ -370,9 +366,8 @@ int H5nb6xx_Helper::helper_initialize_code(){
     printf("Total number of particles: %d, MAX_PARTICLE_NUMBER = %d\n", status.n_particles, MAX_PARTICLE_NUMBER);
     H5Gclose(h5_group_id);
     status.current_step_id = -1;
-    status.data = new H5nb6xx_Helper::Dynamics();
-    status.next_data = new H5nb6xx_Helper::Dynamics();
-    status.interp_data = new H5nb6xx_Helper::Dynamics();
+    status.data = NULL;
+    status.next_data = NULL;
     host_star_flag = new int[MAX_PARTICLE_NUMBER];
     for (int i = 0; i < MAX_PARTICLE_NUMBER; i++) {
         host_star_flag[i] = 0;
@@ -642,8 +637,10 @@ int H5nb6xx_Helper::helper_evolve_model(double to_time) {
         status.prev_step_id = status.current_step_id;
         status.current_step_id = step;
         status.next_step_id = status.current_step_id + 1;
-        h5_load_step_by_id(status.current_step_id, status.data);
-        h5_load_step_by_id(status.next_step_id, status.next_data);
+        if (status.data != NULL) delete status.data;
+        if (status.next_data != NULL) delete status.next_data;
+        status.data = h5_load_step_by_id(status.current_step_id);
+        status.next_data = h5_load_step_by_id(status.next_step_id);
     //}
     
 
