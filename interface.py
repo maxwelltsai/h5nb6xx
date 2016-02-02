@@ -98,7 +98,8 @@ class H5nb6xxInterface(CodeInterface,
     @legacy_function
     def set_host_star_flag():
         """
-        Enables prediction/interpolation of coordinates.
+        Set a flag to determine whether a given ID is a host star.
+        A host star is usually excluded in the get_gravity_at_point() calculations.
         """
         function = LegacyFunctionSpecification()
         function.addParameter('host_star_id', dtype='int32',
@@ -106,6 +107,22 @@ class H5nb6xxInterface(CodeInterface,
         function.addParameter('flag', dtype='int32',
                               direction=function.IN)
         function.result_type = 'int32'
+        return function
+
+    @legacy_function
+    def get_neighbors():
+        """
+        Get the IDs of the closest stars.
+        """
+        function = LegacyFunctionSpecification()
+        function.addParameter('host_star_id', dtype='int32',
+                              direction=function.IN)
+        function.addParameter('neighbor_star_id', dtype='int32',
+                              direction=function.OUT)
+        function.addParameter('number_of_stars_inquired', dtype='int32',
+                              direction=function.LENGTH)
+        function.result_type = 'int32'
+        function.must_handle_array = True
         return function
 
 class H5nb6xx(GravitationalDynamics, GravityFieldCode):

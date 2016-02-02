@@ -247,3 +247,7 @@ int enableInterpolation(int val){
 int set_host_star_flag(int host_star_id, int flag){
     return helper->helper_set_host_star_flag(host_star_id, flag);
 }
+
+int get_neighbors(int *host_star_id, int *neighbor_star_id, int n){
+    return helper->helper_get_neighbors(host_star_id, neighbor_star_id, n);
+}

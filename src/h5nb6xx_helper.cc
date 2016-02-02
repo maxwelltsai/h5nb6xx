@@ -241,9 +241,8 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
             delete [] data->id;
             data->id = NULL;
         }
-        delete [] id_h5_step;
-        id_h5_step = NULL;
         data->id = id_sorted;
+        data->id_original = id_h5_step;
     } else {
         printf("Error! Either id_sorted == NULL or id_h5_step == NULL (load_step_by_id)\n");
     }
@@ -882,4 +881,27 @@ int H5nb6xx_Helper::helper_set_host_star_flag(int host_star_id, int flag)
     return 0;
 }
 
-
+int H5nb6xx_Helper::helper_get_neighbors(int *host_star_id, int* neighbor_star_id, int n) {
+    double d, d_min;
+    double dx, dy, dz;
+    int hsid = 0;
+    //neighbor_star_id = new int[n];
+    for(int i = 0; i < n; i++){
+        d_min = DBL_MAX;
+        neighbor_star_id[i] = -1;
+        for(int j = 0; j < status.n_particles; j++) {
+            hsid = status.data->id[host_star_id[i]];
+            if(hsid == j) continue;
+            dx = status.data->x[hsid] - status.data->x[j];
+            dy = status.data->y[hsid] - status.data->y[j];
+            dz = status.data->z[hsid] - status.data->z[j];
+            d = sqrt(dx * dx + dy * dy + dz * dz);
+            if (d < d_min) {
+                d_min = d;
+                neighbor_star_id[i] = status.data->id_original[j];
+            }
+        }
+        printf("neighbor for %d is %d, rmin=%f\n", host_star_id[i], neighbor_star_id[i], d_min);
+    }
+    return 0;
+}

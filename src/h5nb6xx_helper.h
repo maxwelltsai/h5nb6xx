@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <hdf5.h>
+#include <float.h>
 
 #ifndef _H5NB6XX_HELPER_H
 #define _H5NB6XX_HELPER_H
@@ -16,6 +17,7 @@ class H5nb6xx_Helper
     public:
         struct Dynamics {
             int *id; // sorted ID, id[NAME[index_of_part]] is the internal id of the particle
+            int *id_original; // orig. ID read from the HDF5, given internal id, get NAME
             float *x;
             float *y;
             float *z;
@@ -37,6 +39,7 @@ class H5nb6xx_Helper
             ~Dynamics() {
                 printf("destructor start\n");
                 if(id!=NULL) delete [] id;
+                if(id!=NULL) delete [] id_original;
                 if(x!=NULL) delete [] x;
                 if(y!=NULL) delete [] y;
                 if(z!=NULL) delete [] z;
@@ -150,6 +153,7 @@ class H5nb6xx_Helper
         int helper_get_eta(double * timestep_parameter);
         int helper_set_enable_interpolation(bool val);
         int helper_set_host_star_flag(int host_star_id, int flag);
+        int helper_get_neighbors(int *host_star_id, int* neighbor_star_id, int n);
 
 
 
