@@ -217,8 +217,8 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
     // Prepare the properties of the group
     data->n_records = h5_get_dataset_vector_length(data->h5_group_id,"X");
     if (data->n_records != status.n_particles) {
-        printf("FATAL ERROR: inconsistency number of particles (%d != %d)! Terminating...\n", status.n_particles, data->n_records);
-        exit(-1); // terminate the code if the vector of this step is different from the first step
+        printf("WARNING: escaping stars detected (%d != %d)! \n", status.n_particles, data->n_records);
+        //exit(-1); // terminate the code if the vector of this step is different from the first step
     }
     data->time = h5_read_attribute_double(data->h5_group_id, "Time");
     data->step_id = step_id;
@@ -263,6 +263,7 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
     vec[12] = h5_read_dataset_as_float_vector(data->h5_group_id, "JZ");
 
     // allocate memory if necessary 
+    printf("Allocating memory\n");
     if (data->mass==NULL) data->mass = new float[data->n_records];
     if (data->x==NULL) data->x = new float[data->n_records];
     if (data->y==NULL) data->y = new float[data->n_records];
@@ -298,7 +299,7 @@ int H5nb6xx_Helper::h5_load_step_by_id(int step_id, H5nb6xx_Helper::Dynamics* da
             vec[i] = NULL;
         }
     }
-
+    printf("Loading step done\n");
     return 0;
 }
 
@@ -887,6 +888,8 @@ int H5nb6xx_Helper::helper_get_neighbors(int *host_star_id, int* neighbor_star_i
     int hsid = 0;
     //neighbor_star_id = new int[n];
     for(int i = 0; i < n; i++){
+        /*
+        // Get the neighbor on the CPU
         d_min = DBL_MAX;
         neighbor_star_id[i] = -1;
         for(int j = 0; j < status.n_particles; j++) {
@@ -902,6 +905,11 @@ int H5nb6xx_Helper::helper_get_neighbors(int *host_star_id, int* neighbor_star_i
             }
         }
         printf("neighbor for %d is %d, rmin=%f\n", host_star_id[i], neighbor_star_id[i], d_min);
+        */
+        // Get the neighbor on the GPU
+        int tmp_nsid = this->cuda_util->cuda_sort_neighbors(status.data->id[host_star_id[i]], 1);
+        neighbor_star_id[i] = status.data->id_original[tmp_nsid];
     }
+
     return 0;
 }

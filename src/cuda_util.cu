@@ -4,10 +4,14 @@
 #include <thrust/copy.h>
 #include <thrust/fill.h>
 #include <thrust/replace.h>
+#include <thrust/sort.h>
 #include <thrust/functional.h>
+#include <thrust/extrema.h>
 
 #include "cuda_util.h"
 #include "h5nb6xx_helper.h"
+
+//thrust::device_vector<float3> pos_interp;
 
 struct interpolate
 {
@@ -71,6 +75,7 @@ struct interpolate
     }
 };
 
+
 struct tuple_to_float3 {
     __host__ __device__
     float3 operator()(thrust::tuple<float, float, float> vec) {
@@ -79,6 +84,21 @@ struct tuple_to_float3 {
         float z = thrust::get<2>(vec);
         return make_float3(x, y, z);
     }
+};
+
+struct euclidean_functor
+{
+    const float3 P0;
+    euclidean_functor(float3 _P0) : P0(_P0) {}
+    __host__ __device__
+        float operator()(const float3& P) const { 
+            float dx = P.x - P0.x;
+            float dy = P.y - P0.y;
+            float dz = P.z - P0.z;
+            float dist = sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist <= 1.e-10) return FLT_MAX; // avoid singularity of distance to itself
+            else return dist;
+        }
 };
 
 CUDA_Util::CUDA_Util(H5nb6xx_Helper* helper){
@@ -206,6 +226,10 @@ int CUDA_Util::cuda_predict(float to_time){
             interpolate());
 
     thrust::copy(X.begin(), X.end(), X_h.begin());
+    // copy to the global device vector for subsequent access (e.g. sorting neighbors)
+    if (this->pos_interp.size() == 0) pos_interp.resize(n_particles);
+    if (this->dist.size() == 0) dist.resize(n_particles);
+    thrust::copy(X.begin(), X.end(), pos_interp.begin());
 
 
     for(int i=0; i<n_particles;i++) {
@@ -259,6 +283,33 @@ int CUDA_Util::cuda_predict(float to_time){
     return 0;
 }
 
+/**
+  * Get the nth closest neighbor for particle_id. if nth_elem = 1, it 
+  *     the closest neighbor, and nth_elem=2 ==> second closest...
+  */
+int CUDA_Util::cuda_sort_neighbors(int particle_id, int nth_elem) {
+
+    float3 P0 = this->pos_interp[particle_id];
+    thrust::transform(pos_interp.begin(), pos_interp.end(), dist.begin(), euclidean_functor(P0));
+    if (nth_elem <=-1) {
+        // Just find the closest neighbor, do not sort the distance array
+        thrust::device_vector<float>::iterator min_iter = thrust::min_element(dist.begin(), dist.end());
+        unsigned int min_index = min_iter - dist.begin();
+        return min_index;
+    } else {
+        // have to sort the distance array
+        H5nb6xx_Helper::Status istatus = this->h5nb6xx_helper->get_status();
+
+        int n_particles = istatus.n_particles;
+        thrust::device_vector<int> p_id(n_particles);
+        thrust::sequence(p_id.begin(), p_id.end());
+
+        thrust::transform(pos_interp.begin(), pos_interp.end(), dist.begin(), euclidean_functor(P0));
+        thrust::sort_by_key(dist.begin(), dist.end(), p_id.begin());
+        int neighbor_star_internal_id = p_id[nth_elem-1];// note that the distance to itself is set to FLT_MAX
+        return neighbor_star_internal_id; 
+    }
+}
 
 int CUDA_Util::cuda_get_acceleration(int* x, int* y, int* z, int n_points, float time) {
 

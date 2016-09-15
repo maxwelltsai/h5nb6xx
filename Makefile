@@ -9,8 +9,9 @@ CFLAGS   += -Wall -g
 CXXFLAGS += $(CFLAGS) 
 LDFLAGS  += -lm $(MUSE_LD_FLAGS)
 
-HDF5_LIBS += -lhdf5 -lz -ldl -L/usr/local/cuda/lib -lcuda -lcudart -stdlib=libstdc++ 
-HDF5_FLAGS=-I/opt/local/include -I/Developer/NVIDIA/CUDA-6.5/samples/common/inc -I.
+HDF5_LIBS += -lhdf5 -lz -ldl -L/usr/lib64 -lcuda -lcudart 
+HDF5_FLAGS=-I/usr/include -I/usr/include/cuda -I.
+
 
 OBJS = interface.o 
 
