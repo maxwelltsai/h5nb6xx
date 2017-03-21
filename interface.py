@@ -125,6 +125,29 @@ class H5nb6xxInterface(CodeInterface,
         function.must_handle_array = True
         return function
 
+    @legacy_function
+    def get_state_a_adot():
+        """
+        Get the a and a dot of the specified particles.
+        """
+        function = LegacyFunctionSpecification()
+        function.can_handle_array = True
+        function.addParameter('index_of_the_particle', dtype='int32', direction=function.IN,
+            description = "Index of the particle to get the state from. This index must have been returned by an earlier call to :meth:`new_particle`")
+        function.addParameter('ax', dtype='float64', direction=function.OUT, description = "The current acceleration vector of the particle")
+        function.addParameter('ay', dtype='float64', direction=function.OUT, description = "The current acceleration vector of the particle")
+        function.addParameter('az', dtype='float64', direction=function.OUT, description = "The current acceleration vector of the particle")
+        function.addParameter('jx', dtype='float64', direction=function.OUT, description = "The current jerk vector of the particle")
+        function.addParameter('jy', dtype='float64', direction=function.OUT, description = "The current jerk vector of the particle")
+        function.addParameter('jz', dtype='float64', direction=function.OUT, description = "The current jerk vector of the particle")
+        function.result_type = 'int32'
+        function.result_doc = """
+        0 - OK
+        -1 - ERROR
+            particle could not be found
+        """
+        return function
+
 class H5nb6xx(GravitationalDynamics, GravityFieldCode):
 
     #def __init__(self, **options):
@@ -136,6 +159,7 @@ class H5nb6xx(GravitationalDynamics, GravityFieldCode):
     def define_state(self, object):
         GravitationalDynamics.define_state(self, object)
         object.add_method('RUN', 'get_particle_timestep')
+        object.add_method('RUN', 'get_state_a_adot')
         GravityFieldCode.define_state(self, object)
 
         object.add_method('EDIT', 'set_state')
@@ -226,6 +250,22 @@ class H5nb6xx(GravitationalDynamics, GravityFieldCode):
             (),
             (
                 nbody_system.length * nbody_system.length,
+                object.ERROR_CODE
+            )
+        )
+
+        object.add_method(
+            "get_state_a_adot",
+            (
+                object.NO_UNIT,
+            ),
+            (
+                nbody_system.speed/nbody_system.time,
+                nbody_system.speed/nbody_system.time,
+                nbody_system.speed/nbody_system.time,
+                nbody_system.speed/nbody_system.time/nbody_system.time,
+                nbody_system.speed/nbody_system.time/nbody_system.time,
+                nbody_system.speed/nbody_system.time/nbody_system.time,
                 object.ERROR_CODE
             )
         )

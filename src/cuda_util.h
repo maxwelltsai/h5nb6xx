@@ -10,7 +10,9 @@ class CUDA_Util
     protected:
         H5nb6xx_Helper* h5nb6xx_helper;
         thrust::device_vector<float3> pos_interp;
-        thrust::device_vector<float> dist;
+        thrust::device_vector<float> dist_squared;
+        thrust::device_vector<float> mass;
+        thrust::device_vector<float> acc;
 
     public:
         CUDA_Util(H5nb6xx_Helper*);

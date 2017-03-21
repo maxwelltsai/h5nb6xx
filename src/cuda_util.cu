@@ -13,6 +13,46 @@
 
 //thrust::device_vector<float3> pos_interp;
 
+
+struct interpolate_acc
+{
+    __host__ __device__
+    float3 operator()(const thrust::tuple<float3, float3, float3>& vec)
+    {
+        float3 A = thrust::get<0>(vec);
+        float3 J = thrust::get<1>(vec);
+        float3 T = thrust::get<2>(vec);
+        float t = T.x;
+        float t0 = T.y;
+        float dt = t - t0;
+        if (t<t0) t = t0; // fix a bug of the misalignment of HDF5 steps
+        float ax = A.x + J.x * dt;
+        float ay = A.y + J.y * dt;
+        float az = A.z + J.z * dt;
+        return make_float3(ax, ay, az);
+    }
+};
+
+struct interpolate_vel
+{
+    __host__ __device__
+    float3 operator()(const thrust::tuple<float3, float3, float3, float3>& vec)
+    {
+        float3 V = thrust::get<0>(vec);
+        float3 A = thrust::get<1>(vec);
+        float3 J = thrust::get<2>(vec);
+        float3 T = thrust::get<3>(vec);
+        float t = T.x;
+        float t0 = T.y;
+        float dt = t - t0;
+        if (t<t0) t = t0; // fix a bug of the misalignment of HDF5 steps
+        float vx = V.x + 0.5 * A.x * dt + (1.0 / 6) * J.x * dt * dt;
+        float vy = V.y + 0.5 * A.y * dt + (1.0 / 6) * J.y * dt * dt;
+        float vz = V.z + 0.5 * A.z * dt + (1.0 / 6) * J.z * dt * dt;
+        return make_float3(vx, vy, vz);
+    }
+};
+
 struct interpolate
 {
     __host__ __device__
@@ -86,6 +126,7 @@ struct tuple_to_float3 {
     }
 };
 
+
 struct euclidean_functor
 {
     const float3 P0;
@@ -98,6 +139,22 @@ struct euclidean_functor
             float dist = sqrt(dx * dx + dy * dy + dz * dz);
             if (dist <= 1.e-10) return FLT_MAX; // avoid singularity of distance to itself
             else return dist;
+        }
+};
+
+struct gravity_functor
+{
+    const float4 P0;
+    gravity_functor(float4 _P0) : P0(_P0) {}
+    __host__ __device__
+        float operator()(const float4& P) const { 
+            float dx = P.x - P0.x;
+            float dy = P.y - P0.y;
+            float dz = P.z - P0.z;
+            float m = P.w;
+            float dist = dx * dx + dy * dy + dz * dz;
+            if (dist <= 1.e-10) return FLT_MIN; // avoid singularity of distance to itself
+            else return (m / sqrt(dist));
         }
 };
 
@@ -123,6 +180,7 @@ int CUDA_Util::cuda_predict(float to_time){
     int n_particles = istatus.n_particles;
     float current_time = idata->time;
     std::cout<<"interpolation, dt="<<(to_time - current_time)<<" t0="<<current_time<<" t="<<to_time<<" t1="<<idata1->time<<std::endl;
+    thrust::device_vector<float> m(idata->mass, idata->mass + n_particles);
     thrust::device_vector<float> x(idata->x, idata->x + n_particles);
     thrust::device_vector<float> y(idata->y, idata->y + n_particles);
     thrust::device_vector<float> z(idata->z, idata->z + n_particles);
@@ -136,6 +194,7 @@ int CUDA_Util::cuda_predict(float to_time){
     thrust::device_vector<float> jy(idata->jy, idata->jy + n_particles);
     thrust::device_vector<float> jz(idata->jz, idata->jz + n_particles);
 
+    thrust::device_vector<float> m1(idata1->mass, idata1->mass + n_particles);
     thrust::device_vector<float> x1(idata1->x, idata1->x + n_particles);
     thrust::device_vector<float> y1(idata1->y, idata1->y + n_particles);
     thrust::device_vector<float> z1(idata1->z, idata1->z + n_particles);
@@ -163,6 +222,8 @@ int CUDA_Util::cuda_predict(float to_time){
     thrust::device_vector<float> tstep(n_particles);
 
     thrust::host_vector<float3> X_h(n_particles);
+    thrust::host_vector<float3> V_h(n_particles);
+    thrust::host_vector<float3> A_h(n_particles);
 
     thrust::fill(t.begin(), t.end(), to_time);
     thrust::fill(t0.begin(), t0.end(), current_time);
@@ -220,25 +281,50 @@ int CUDA_Util::cuda_predict(float to_time){
             T.begin(), 
             tuple_to_float3());
 
+    // interpolate positions
     thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(X.begin(), V.begin(), A.begin(), J.begin(), X1.begin(), V1.begin(), A1.begin(), J1.begin(), T.begin())),
             thrust::make_zip_iterator(thrust::make_tuple(X.end(), V.end(), A.end(), J.end(), X1.end(), V1.end(), A1.end(), J1.end(), T.end())),
             X.begin(),
             interpolate());
 
+    // interpolation velocities
+    thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(V.begin(), A.begin(), J.begin(), T.begin())),
+            thrust::make_zip_iterator(thrust::make_tuple(V.end(), A.end(), J.end(), T.end())),
+            V.begin(),
+            interpolate_vel());
+
+    // interpolation accelerations
+    thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(A.begin(), J.begin(), T.begin())),
+            thrust::make_zip_iterator(thrust::make_tuple(A.end(), J.end(), T.end())),
+            A.begin(),
+            interpolate_acc());
+
     thrust::copy(X.begin(), X.end(), X_h.begin());
+    thrust::copy(V.begin(), V.end(), V_h.begin());
+    thrust::copy(A.begin(), A.end(), A_h.begin());
     // copy to the global device vector for subsequent access (e.g. sorting neighbors)
     if (this->pos_interp.size() == 0) pos_interp.resize(n_particles);
-    if (this->dist.size() == 0) dist.resize(n_particles);
+    if (this->dist_squared.size() == 0) dist_squared.resize(n_particles);
+    if (this->mass.size() == 0) mass.resize(n_particles);
+    if (this->acc.size() == 0) acc.resize(n_particles);
     thrust::copy(X.begin(), X.end(), pos_interp.begin());
+    thrust::copy(m.begin(), m.end(), mass.begin());
 
 
     for(int i=0; i<n_particles;i++) {
         idata->x[i] = X_h[i].x;
         idata->y[i] = X_h[i].y;
         idata->z[i] = X_h[i].z;
+        idata->vx[i] = V_h[i].x;
+        idata->vy[i] = V_h[i].y;
+        idata->vz[i] = V_h[i].z;
+        idata->ax[i] = A_h[i].x;
+        idata->ay[i] = A_h[i].y;
+        idata->az[i] = A_h[i].z;
     }
 
     // clean up memory
+    m.clear();
     x.clear();
     y.clear();
     z.clear();
@@ -251,6 +337,7 @@ int CUDA_Util::cuda_predict(float to_time){
     jx.clear();
     jy.clear();
     jz.clear();
+    m1.clear();
     x1.clear();
     y1.clear();
     z1.clear();
@@ -288,26 +375,38 @@ int CUDA_Util::cuda_predict(float to_time){
   *     the closest neighbor, and nth_elem=2 ==> second closest...
   */
 int CUDA_Util::cuda_sort_neighbors(int particle_id, int nth_elem) {
-
+    int sorted_by_dist = 1;
     float3 P0 = this->pos_interp[particle_id];
-    thrust::transform(pos_interp.begin(), pos_interp.end(), dist.begin(), euclidean_functor(P0));
-    if (nth_elem <=-1) {
-        // Just find the closest neighbor, do not sort the distance array
-        thrust::device_vector<float>::iterator min_iter = thrust::min_element(dist.begin(), dist.end());
-        unsigned int min_index = min_iter - dist.begin();
-        return min_index;
+    thrust::transform(pos_interp.begin(), pos_interp.end(), dist_squared.begin(), euclidean_functor(P0));
+    if (sorted_by_dist == 0) {
+        thrust::transform(mass.begin(), mass.end(), dist_squared.begin(), acc.begin(), thrust::divides<float>());
+    }
+    if (nth_elem <= 1) {
+        if (sorted_by_dist == 1) {
+            thrust::device_vector<float>::iterator min_iter = thrust::min_element(dist_squared.begin(), dist_squared.end());
+            unsigned int min_index = min_iter - dist_squared.begin();
+            return min_index;
+        } else {
+            // Just find the most influential neighbor, do not sort the acc array
+            thrust::device_vector<float>::iterator max_iter = thrust::max_element(acc.begin(), acc.end());
+            unsigned int max_index = max_iter - acc.begin();
+            return max_index;
+        }
     } else {
-        // have to sort the distance array
+        // have to sort the acc array
         H5nb6xx_Helper::Status istatus = this->h5nb6xx_helper->get_status();
-
         int n_particles = istatus.n_particles;
         thrust::device_vector<int> p_id(n_particles);
         thrust::sequence(p_id.begin(), p_id.end());
-
-        thrust::transform(pos_interp.begin(), pos_interp.end(), dist.begin(), euclidean_functor(P0));
-        thrust::sort_by_key(dist.begin(), dist.end(), p_id.begin());
-        int neighbor_star_internal_id = p_id[nth_elem-1];// note that the distance to itself is set to FLT_MAX
-        return neighbor_star_internal_id; 
+        if (sorted_by_dist == 1) {
+            thrust::sort_by_key(dist_squared.begin(), dist_squared.end(), p_id.begin());
+            int neighbor_star_internal_id = p_id[nth_elem - 1];
+            return neighbor_star_internal_id; 
+        } else {
+            thrust::sort_by_key(acc.begin(), acc.end(), p_id.begin());
+            int neighbor_star_internal_id = p_id[n_particles - nth_elem];
+            return neighbor_star_internal_id; 
+        }
     }
 }
 

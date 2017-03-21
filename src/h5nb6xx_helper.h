@@ -112,6 +112,8 @@ class H5nb6xx_Helper
         int helper_get_index_of_next_particle(int index_of_the_particle, int * index_of_the_next_particle);
         int helper_get_state(int index_of_the_particle, double * mass, double * x, 
                 double * y, double * z, double * vx, double * vy, double * vz, double * radius);
+        int helper_get_state_a_adot(int index_of_the_particle, double * ax, 
+                double * ay, double * az, double * jx, double * jy, double * jz);
         int helper_set_state(int index_of_the_particle, double mass, double x, 
                 double y, double z, double vx, double vy, double vz, double radius);
         int helper_get_mass(int index_of_the_particle, double * mass);

@@ -440,6 +440,18 @@ int H5nb6xx_Helper::helper_get_state(int index_of_the_particle, double * mass, d
     return 0;
 }
 
+int H5nb6xx_Helper::helper_get_state_a_adot(int index_of_the_particle, double * ax, 
+  double * ay, double * az, double * jx, double * jy, double * jz){
+    index_of_the_particle -= 1; // the ID is already sorted, starting from 0
+    *ax = status.data->ax[index_of_the_particle];
+    *ay = status.data->ay[index_of_the_particle];
+    *az = status.data->az[index_of_the_particle];
+    *jx = status.data->jx[index_of_the_particle];
+    *jy = status.data->jy[index_of_the_particle];
+    *jz = status.data->jz[index_of_the_particle];
+    return 0;
+}
+
 
 int H5nb6xx_Helper::helper_set_state(int index_of_the_particle, double mass, double x, 
         double y, double z, double vx, double vy, double vz, double radius){
@@ -883,9 +895,9 @@ int H5nb6xx_Helper::helper_set_host_star_flag(int host_star_id, int flag)
 }
 
 int H5nb6xx_Helper::helper_get_neighbors(int *host_star_id, int* neighbor_star_id, int n) {
-    double d, d_min;
-    double dx, dy, dz;
-    int hsid = 0;
+    // double d, d_min;
+    // double dx, dy, dz;
+    // int hsid = 0;
     //neighbor_star_id = new int[n];
     for(int i = 0; i < n; i++){
         /*
