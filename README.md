@@ -20,6 +20,8 @@ Clone this project to the `/src/amuse/community/` directory of the `AMUSE` code,
 
     make clean; make all
 
+Sometimes, editing the `Makefile` is necessary.
+
 # Publications
 
 - Astrophysical paper: http://adsabs.harvard.edu/abs/2017arXiv170603789C
