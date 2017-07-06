@@ -4,4 +4,9 @@ Admittedly, `H5nb6xx` is a strange name combining `HDF5` (https://en.wikipedia.o
 
 # Why `H5nb6xx`
 
-The development of this interface is originally motivated to couple the star cluster dynamics and planetary system dynamics. Planetary systems and star clusters opearate in very different dynamical timescales, which leads to a hierarchical problem. `H5nb6xx` allows the user to precalculate the star cluster dyanmics, and then use the recorded stellar data to perturb planetary systems. 
+The development of this interface is originally motivated to couple the star cluster dynamics and planetary system dynamics. Planetary systems and star clusters opearate in very different dynamical timescales, which leads to a hierarchical problem. `H5nb6xx` allows the user to precalculate the star cluster dyanmics, and then use the recorded stellar data to perturb planetary systems. This also makes the star cluster data exactly reproducible in subsequent simulations.
+
+# Publications
+
+Astrophysical paper: http://adsabs.harvard.edu/abs/2017arXiv170603789C
+Technical paper: http://adsabs.harvard.edu/abs/2015ApJS..219...31C
