@@ -6,6 +6,15 @@ Admittedly, `H5nb6xx` is a strange name combining `HDF5` (https://en.wikipedia.o
 
 The development of this interface is originally motivated to couple the star cluster dynamics and planetary system dynamics. Planetary systems and star clusters opearate in very different dynamical timescales, which leads to a hierarchical problem. `H5nb6xx` allows the user to precalculate the star cluster dyanmics, and then use the recorded stellar data to perturb planetary systems. This also makes the star cluster data exactly reproducible in subsequent simulations.
 
+# Prerequisites
+
+- The `AMUSE` framework
+
+- MPI
+
+- NVIDIA CUDA
+
+
 # Installation
 Clone this project to the `/src/amuse/community/` directory of the `AMUSE` code, and compile it.
 
