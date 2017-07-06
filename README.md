@@ -16,7 +16,9 @@ The development of this interface is originally motivated to couple the star clu
 
 
 # Installation
-Clone this project to the `/src/amuse/community/` directory of the `AMUSE` code, and compile it.
+Clone this project to the `/src/amuse/community/` directory of the `AMUSE` code, and compile it: 
+
+    make clean; make all
 
 # Publications
 
