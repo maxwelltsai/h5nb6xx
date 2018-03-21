@@ -371,17 +371,17 @@ int CUDA_Util::cuda_predict(float to_time){
 }
 
 /**
-  * Get the nth closest neighbor for particle_id. if nth_elem = 1, it 
-  *     the closest neighbor, and nth_elem=2 ==> second closest...
+  * Get the nth closest neighbor for particle_id. if nth_neighbor = 1, it 
+  *     the closest neighbor, and nth_neighbor=2 ==> second closest...
   */
-int CUDA_Util::cuda_sort_neighbors(int particle_id, int nth_elem) {
+int CUDA_Util::cuda_get_nth_neighbor(int particle_id, int nth_neighbor) {
     int sorted_by_dist = 1;
     float3 P0 = this->pos_interp[particle_id];
     thrust::transform(pos_interp.begin(), pos_interp.end(), dist_squared.begin(), euclidean_functor(P0));
     if (sorted_by_dist == 0) {
         thrust::transform(mass.begin(), mass.end(), dist_squared.begin(), acc.begin(), thrust::divides<float>());
     }
-    if (nth_elem <= 1) {
+    if (nth_neighbor <= 1) {
         if (sorted_by_dist == 1) {
             thrust::device_vector<float>::iterator min_iter = thrust::min_element(dist_squared.begin(), dist_squared.end());
             unsigned int min_index = min_iter - dist_squared.begin();
@@ -393,21 +393,52 @@ int CUDA_Util::cuda_sort_neighbors(int particle_id, int nth_elem) {
             return max_index;
         }
     } else {
-        // have to sort the acc array
+        // have to sort the array
         H5nb6xx_Helper::Status istatus = this->h5nb6xx_helper->get_status();
         int n_particles = istatus.n_particles;
         thrust::device_vector<int> p_id(n_particles);
         thrust::sequence(p_id.begin(), p_id.end());
         if (sorted_by_dist == 1) {
+            // sort the distance array
             thrust::sort_by_key(dist_squared.begin(), dist_squared.end(), p_id.begin());
-            int neighbor_star_internal_id = p_id[nth_elem - 1];
+            int neighbor_star_internal_id = p_id[nth_neighbor - 1];
             return neighbor_star_internal_id; 
         } else {
+            // sort the acc array
             thrust::sort_by_key(acc.begin(), acc.end(), p_id.begin());
-            int neighbor_star_internal_id = p_id[n_particles - nth_elem];
+            int neighbor_star_internal_id = p_id[n_particles - nth_neighbor];
             return neighbor_star_internal_id; 
         }
     }
+}
+
+/**
+  Get the N-nearest neighbors of particle with the given ID.
+  */
+int* CUDA_Util::cuda_get_neighbors(int particle_id, int n_neighbors) {
+    int sorted_by_dist = 1;
+    if (n_neighbors < 1) n_neighbors = 1;
+    int neighbors[n_neighbors];
+    H5nb6xx_Helper::Status istatus = this->h5nb6xx_helper->get_status();
+    int n_particles = istatus.n_particles;
+    thrust::device_vector<int> p_id(n_particles);
+    thrust::sequence(p_id.begin(), p_id.end());
+    if (sorted_by_dist == 1) {
+        // sort the distance array
+        thrust::sort_by_key(dist_squared.begin(), dist_squared.end(), p_id.begin());
+        for (int i = 0; i < n_neighbors; i++) {
+            neighbors[i] = p_id[i];
+        }
+        return neighbors; 
+    } else {
+        // sort the acc array
+        thrust::sort_by_key(acc.begin(), acc.end(), p_id.begin());
+        for (int i = 0; i < n_neighbors; i++) {
+            neighbors[i] = p_id[i];
+        }
+        return neighbors; 
+    }
+
 }
 
 int CUDA_Util::cuda_get_acceleration(int* x, int* y, int* z, int n_points, float time) {

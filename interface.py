@@ -119,10 +119,37 @@ class H5nb6xxInterface(CodeInterface,
                               direction=function.IN)
         function.addParameter('neighbor_star_id', dtype='int32',
                               direction=function.OUT)
+        function.addParameter('nth_neighbor', dtype='int32',
+                              direction=function.IN)
         function.addParameter('number_of_stars_inquired', dtype='int32',
                               direction=function.LENGTH)
         function.result_type = 'int32'
         function.must_handle_array = True
+        return function
+
+    @legacy_function
+    def get_states():
+        """
+        Get the states of the specified particles.
+        """
+        function = LegacyFunctionSpecification()
+        function.must_handle_array = True
+        function.addParameter('index_of_the_particle', dtype='int32', direction=function.IN)
+        function.addParameter('mass', dtype='float64', direction=function.OUT, description = "The mass the particle")
+        function.addParameter('x', dtype='float64', direction=function.OUT)
+        function.addParameter('y', dtype='float64', direction=function.OUT)
+        function.addParameter('z', dtype='float64', direction=function.OUT)
+        function.addParameter('vx', dtype='float64', direction=function.OUT)
+        function.addParameter('vy', dtype='float64', direction=function.OUT)
+        function.addParameter('vz', dtype='float64', direction=function.OUT)
+        function.addParameter('radius', dtype='float64', direction=function.OUT)
+        function.addParameter('number_of_stars_inquired', dtype='int32', direction=function.LENGTH)
+        function.result_type = 'int32'
+        function.result_doc = """
+        0 - OK
+        -1 - ERROR
+            particle could not be found
+        """
         return function
 
     @legacy_function
@@ -132,14 +159,13 @@ class H5nb6xxInterface(CodeInterface,
         """
         function = LegacyFunctionSpecification()
         function.can_handle_array = True
-        function.addParameter('index_of_the_particle', dtype='int32', direction=function.IN,
-            description = "Index of the particle to get the state from. This index must have been returned by an earlier call to :meth:`new_particle`")
-        function.addParameter('ax', dtype='float64', direction=function.OUT, description = "The current acceleration vector of the particle")
-        function.addParameter('ay', dtype='float64', direction=function.OUT, description = "The current acceleration vector of the particle")
-        function.addParameter('az', dtype='float64', direction=function.OUT, description = "The current acceleration vector of the particle")
-        function.addParameter('jx', dtype='float64', direction=function.OUT, description = "The current jerk vector of the particle")
-        function.addParameter('jy', dtype='float64', direction=function.OUT, description = "The current jerk vector of the particle")
-        function.addParameter('jz', dtype='float64', direction=function.OUT, description = "The current jerk vector of the particle")
+        function.addParameter('index_of_the_particle', dtype='int32', direction=function.IN)
+        function.addParameter('ax', dtype='float64', direction=function.OUT)
+        function.addParameter('ay', dtype='float64', direction=function.OUT)
+        function.addParameter('az', dtype='float64', direction=function.OUT)
+        function.addParameter('jx', dtype='float64', direction=function.OUT)
+        function.addParameter('jy', dtype='float64', direction=function.OUT)
+        function.addParameter('jz', dtype='float64', direction=function.OUT)
         function.result_type = 'int32'
         function.result_doc = """
         0 - OK
@@ -147,6 +173,30 @@ class H5nb6xxInterface(CodeInterface,
             particle could not be found
         """
         return function
+
+    @legacy_function
+    def get_states_a_adot():
+        """
+        Get the a and a dot of the specified particles.
+        """
+        function = LegacyFunctionSpecification()
+        function.must_handle_array = True
+        function.addParameter('index_of_the_particle', dtype='int32', direction=function.IN)
+        function.addParameter('ax', dtype='float64', direction=function.OUT)
+        function.addParameter('ay', dtype='float64', direction=function.OUT)
+        function.addParameter('az', dtype='float64', direction=function.OUT)
+        function.addParameter('jx', dtype='float64', direction=function.OUT)
+        function.addParameter('jy', dtype='float64', direction=function.OUT)
+        function.addParameter('jz', dtype='float64', direction=function.OUT)
+        function.addParameter('number_of_stars_inquired', dtype='int32', direction=function.LENGTH)
+        function.result_type = 'int32'
+        function.result_doc = """
+        0 - OK
+        -1 - ERROR
+            particle could not be found
+        """
+        return function
+
 
 class H5nb6xx(GravitationalDynamics, GravityFieldCode):
 

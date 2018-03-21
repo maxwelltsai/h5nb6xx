@@ -60,6 +60,14 @@ int get_state_a_adot(int index_of_the_particle, double * ax, double * ay, double
     return helper->helper_get_state_a_adot(index_of_the_particle, ax, ay, az, jx, jy, jz);
 }
 
+int get_states(int* index_of_the_particle, double * mass, double * x, double * y, double * z, double * vx, double * vy, double * vz, double * radius, int n){
+    return helper->helper_get_states(index_of_the_particle, mass, x, y, z, vx, vy, vz, radius, n);
+}
+
+int get_states_a_adot(int* index_of_the_particle, double * ax, double * ay, double * az, double * jx, double * jy, double * jz, int n){
+    return helper->helper_get_states_a_adot(index_of_the_particle, ax, ay, az, jx, jy, jz, n);
+}
+
 int set_state(int index_of_the_particle, double mass, double x, double y, double z, double vx, double vy, double vz, double radius){
     return helper->helper_set_state(index_of_the_particle, mass, x, y, z, vx, vy, vz, radius);
 }
@@ -251,8 +259,8 @@ int set_host_star_flag(int host_star_id, int flag){
     return helper->helper_set_host_star_flag(host_star_id, flag);
 }
 
-int get_neighbors(int *host_star_id, int *neighbor_star_id, int n){
-    return helper->helper_get_neighbors(host_star_id, neighbor_star_id, n);
+int get_neighbors(int *host_star_id, int *neighbor_star_id, int* nth_neighbor, int n){
+    return helper->helper_get_neighbors(host_star_id, neighbor_star_id, nth_neighbor, n);
 }
 
 

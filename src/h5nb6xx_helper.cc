@@ -452,6 +452,36 @@ int H5nb6xx_Helper::helper_get_state_a_adot(int index_of_the_particle, double * 
     return 0;
 }
 
+int H5nb6xx_Helper::helper_get_states(int* index_of_the_particle, double * mass, double * x, 
+  double * y, double * z, double * vx, double * vy, double * vz, double * radius, int n){
+    for (int i = 0; i < n; i++) {
+        int pi = index_of_the_particle[pi] - 1; // the array starts from 0
+        mass[i] = status.data->mass[pi];
+        x[i] = status.data->x[pi];
+        y[i] = status.data->y[pi];
+        z[i] = status.data->z[pi];
+        vx[i] = status.data->vx[pi];
+        vy[i] = status.data->vy[pi];
+        vz[i] = status.data->vz[pi];
+        radius[i] = 0;
+    }
+    return 0;
+}
+
+int H5nb6xx_Helper::helper_get_states_a_adot(int* index_of_the_particle, double * ax, 
+  double * ay, double * az, double * jx, double * jy, double * jz, int n){
+    for (int i = 0; i < n; i++) {
+        int pi = index_of_the_particle[pi] - 1; // the array starts from 0
+        ax[i] = status.data->ax[pi];
+        ay[i] = status.data->ay[pi];
+        az[i] = status.data->az[pi];
+        jx[i] = status.data->jx[pi];
+        jy[i] = status.data->jy[pi];
+        jz[i] = status.data->jz[pi];
+    }
+    return 0;
+}
+
 
 int H5nb6xx_Helper::helper_set_state(int index_of_the_particle, double mass, double x, 
         double y, double z, double vx, double vy, double vz, double radius){
@@ -894,7 +924,7 @@ int H5nb6xx_Helper::helper_set_host_star_flag(int host_star_id, int flag)
     return 0;
 }
 
-int H5nb6xx_Helper::helper_get_neighbors(int *host_star_id, int* neighbor_star_id, int n) {
+int H5nb6xx_Helper::helper_get_neighbors(int *host_star_id, int* neighbor_star_id, int *nth_neighbor, int n) {
     // double d, d_min;
     // double dx, dy, dz;
     // int hsid = 0;
@@ -919,7 +949,7 @@ int H5nb6xx_Helper::helper_get_neighbors(int *host_star_id, int* neighbor_star_i
         printf("neighbor for %d is %d, rmin=%f\n", host_star_id[i], neighbor_star_id[i], d_min);
         */
         // Get the neighbor on the GPU
-        int tmp_nsid = this->cuda_util->cuda_sort_neighbors(status.data->id[host_star_id[i]], 1);
+        int tmp_nsid = this->cuda_util->cuda_get_nth_neighbor(status.data->id[host_star_id[i]], nth_neighbor[i]);
         neighbor_star_id[i] = status.data->id_original[tmp_nsid];
     }
 

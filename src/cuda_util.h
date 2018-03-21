@@ -17,7 +17,8 @@ class CUDA_Util
     public:
         CUDA_Util(H5nb6xx_Helper*);
         int cuda_predict(float);
-        int cuda_sort_neighbors(int particle_id, int nth_elem);
+        int cuda_get_nth_neighbor(int particle_id, int nth_neighbor);
+        int* cuda_get_neighbors(int particle_id, int n_neighbors);
         int cuda_get_acceleration(int*, int*, int*, int, float);
         int cuda_get_potential(int*, int*, int*, int, float);
 };

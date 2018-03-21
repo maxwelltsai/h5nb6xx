@@ -114,6 +114,10 @@ class H5nb6xx_Helper
                 double * y, double * z, double * vx, double * vy, double * vz, double * radius);
         int helper_get_state_a_adot(int index_of_the_particle, double * ax, 
                 double * ay, double * az, double * jx, double * jy, double * jz);
+        int helper_get_states(int* index_of_the_particle, double * mass, double * x, 
+                double * y, double * z, double * vx, double * vy, double * vz, double * radius, int n);
+        int helper_get_states_a_adot(int* index_of_the_particle, double * ax, 
+                double * ay, double * az, double * jx, double * jy, double * jz, int n);
         int helper_set_state(int index_of_the_particle, double mass, double x, 
                 double y, double z, double vx, double vy, double vz, double radius);
         int helper_get_mass(int index_of_the_particle, double * mass);
@@ -155,7 +159,7 @@ class H5nb6xx_Helper
         int helper_get_eta(double * timestep_parameter);
         int helper_set_enable_interpolation(bool val);
         int helper_set_host_star_flag(int host_star_id, int flag);
-        int helper_get_neighbors(int *host_star_id, int* neighbor_star_id, int n);
+        int helper_get_neighbors(int *host_star_id, int* neighbor_star_id, int *nth_neighbor, int n);
 
 
 
